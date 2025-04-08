@@ -3,6 +3,8 @@ import pandas as pd
 import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Force Streamlit to redeploy
+
 st.set_page_config(page_title="Age Inference Tool", page_icon="🧠", layout="centered")
 
 # 🌸 Pastel Dreamy Styling
