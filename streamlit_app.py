@@ -102,6 +102,9 @@ st.markdown("---")
 st.markdown("### 🔍 Select a Platform")
 platform = st.selectbox("", ["Roblox", "TikTok", "Character.ai"])
 
+# Mode selector
+mode = st.radio("Choose prediction mode:", ["Single message", "User-level (multiple messages)"])
+
 # ✅ Friendly user instruction with soft background
 st.markdown("""
 <div style="background-color:#f0f2f6; padding:10px; border-radius:8px;">
@@ -123,28 +126,58 @@ elif platform == "Character.ai":
     vectorizer = joblib.load("characterai_vectorizer.pkl")
     label_names = ["Adult", "Minor"]
 
-# Text input
-user_text = st.text_area("Enter a message:", height=100)
+# 🧠 SINGLE MESSAGE MODE
+if mode == "Single message":
+    user_text = st.text_area("Enter a message:", height=100, key="single_message_input")
 
-if st.button("Predict"):
-    if not user_text.strip():
-        st.warning("Please enter a message.")
-    else:
-        X = vectorizer.transform([user_text])
-        pred = int(model.predict(X)[0])
-        probs = model.predict_proba(X)[0]
+    if st.button("Predict Message", key="predict_single"):
+        if not user_text.strip():
+            st.warning("Please enter a message.")
+        else:
+            X = vectorizer.transform([user_text])
+            pred = int(model.predict(X)[0])
+            probs = model.predict_proba(X)[0]
 
-        label = label_names[pred]
-        confidence = "  |  ".join(
-            f"{label_names[i]}: {round(probs[i] * 100, 1)}%" for i in range(len(label_names))
-        )
+            label = label_names[pred]
+            confidence = "  |  ".join(
+                f"{label_names[i]}: {round(probs[i] * 100, 1)}%" for i in range(len(label_names))
+            )
 
-        st.markdown(f"""
-        <div style="background-color:#e0f7fa; padding:10px; border-radius:8px; border-left: 5px solid #00acc1;">
-        <b>✅ Predicted:</b> <span style="font-size: 1.2em;">{label}</span><br>
-        <b>Confidence:</b> {confidence}
-        </div>
-        """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="background-color:#e0f7fa; padding:10px; border-radius:8px; border-left: 5px solid #00acc1;">
+            <b>✅ Predicted:</b> <span style="font-size: 1.2em;">{label}</span><br>
+            <b>Confidence:</b> {confidence}
+            </div>
+            """, unsafe_allow_html=True)
+
+else:
+    st.markdown("📋 Paste multiple messages from a single user (one per line):")
+    multi_message_input = st.text_area("User's messages", height=200, key="user_level_input")
+
+    if st.button("Predict User Age", key="predict_user"):
+        messages = [m.strip() for m in multi_message_input.strip().split("\n") if m.strip()]
+        if not messages:
+            st.warning("Please enter at least one message.")
+        else:
+            X = vectorizer.transform(messages)
+            probs = model.predict_proba(X)
+            avg_probs = probs.mean(axis=0)
+            pred = int(avg_probs.argmax())
+
+            label = label_names[pred]
+            confidence = "\n".join(
+                [f"- {label_names[i]}: {round(avg_probs[i]*100, 2)}%" for i in range(len(label_names))]
+            )
+
+            st.markdown(f"""
+            <div style="background-color:#f3e5f5; padding:15px; border-radius:10px; border-left: 6px solid #8e24aa;">
+            🧠 <b>Predicted age group for this user:</b> <span style="font-size: 1.3em;">{label}</span><br>
+            📈 <b>Based on {len(messages)} messages</b><br><br>
+            <b>Confidence Breakdown:</b><br>
+            {confidence}
+            </div>
+            """, unsafe_allow_html=True)
+
 
 # Optional batch prediction
 st.markdown("---")
